@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/your-username/calculator.git'
+                git 'https://github.com/VinenTik/calculator.git'
             }
         }
         stage('Install Dependencies') {
@@ -22,7 +22,7 @@ pipeline {
                 sh '''
                 gcloud auth configure-docker
                 gcloud builds submit --tag gcr.io/$PROJECT_ID/calculator
-                gcloud run deploy calculator --image gcr.io/$PROJECT_ID/calculator --region us-central1 --allow-unauthenticated
+                gcloud run deploy calculator --image gcr.io/byteeit-testing-project/calculator --region us-central1 --allow-unauthenticated
                 '''
             }
         }
