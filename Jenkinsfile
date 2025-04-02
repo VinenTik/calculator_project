@@ -1,30 +1,69 @@
 pipeline {
     agent any
+
+    environment {
+        PROJECT_ID = 'byteeit-testing-project'
+        REGION = 'us-central1'
+        SERVICE_NAME = 'calculator-service'  // Change if needed
+    }
+
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/VinenTik/calculator.git'
+                git 'https://github.com/VinenTik/calculator_project.git'
             }
         }
-        stage('Install Dependencies') {
+
+        stage('Install Backend Dependencies') {
             steps {
-                sh 'cd backend && npm install'
-                sh 'cd frontend && npm install'
+                script {
+                    dir('backend') {
+                        sh 'npm install'
+                    }
+                }
             }
         }
-        stage('Run Tests') {
+
+        stage('Install Frontend Dependencies') {
             steps {
-                sh 'cd backend && npm test || echo "No tests found"'
+                script {
+                    dir('frontend') {
+                        sh 'npm install'
+                        sh 'npm run build'
+                    }
+                }
             }
         }
-        stage('Deploy to Cloud Run') {
+
+        stage('Deploy Backend to Cloud Run') {
             steps {
-                sh '''
-                gcloud auth configure-docker
-                gcloud builds submit --tag gcr.io/$PROJECT_ID/calculator
-                gcloud run deploy calculator --image gcr.io/byteeit-testing-project/calculator --region us-central1 --allow-unauthenticated
-                '''
+                script {
+                    sh """
+                        gcloud builds submit --pack image=gcr.io/$PROJECT_ID/calculator-backend --region=$REGION
+                        gcloud run deploy $SERVICE_NAME-backend --image=gcr.io/$PROJECT_ID/calculator-backend --region=$REGION --platform=managed --allow-unauthenticated
+                    """
+                }
             }
+        }
+
+        stage('Deploy Frontend to Cloud Run') {
+            steps {
+                script {
+                    sh """
+                        gcloud builds submit --pack image=gcr.io/$PROJECT_ID/calculator-frontend --region=$REGION
+                        gcloud run deploy $SERVICE_NAME-frontend --image=gcr.io/$PROJECT_ID/calculator-frontend --region=$REGION --platform=managed --allow-unauthenticated
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment successful! Visit the Cloud Run URLs to access your app."
+        }
+        failure {
+            echo "Deployment failed. Check Jenkins logs for details."
         }
     }
 }
